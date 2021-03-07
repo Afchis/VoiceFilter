@@ -31,8 +31,9 @@ class SpeechEmbedder(nn.Module):
         self.proj = LinearNorm()
 
     def forward(self, mel):
+        mel = mel.squeeze()
         # (num_mels, T)
-        mels = mel.unfold(1, 80, 40) # (num_mels, T', window)
+        mels = mel.unfold(1, 40, 80) # (num_mels, T', window)
         mels = mels.permute(1, 2, 0) # (T', window, num_mels)
         x, _ = self.lstm(mels) # (T', window, lstm_hidden)
         x = x[:, -1, :] # (T', lstm_hidden), use last frame only
