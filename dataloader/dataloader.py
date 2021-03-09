@@ -4,12 +4,14 @@ from torchvision import transforms
 
 from utils.get_audio import GetAudio
 
+import random
+
 
 class LibriSpeech300_train(Dataset):
-    def __init__(self, epoch_len=1e6):
+    def __init__(self, epoch_len=1000):
         super().__init__()
         self.epoch_len = epoch_len
-        self.data_path = "./audio/"
+        self.data_path = "/workspace/db/audio/Libri/LibriSmall/"
         self.get_audio = GetAudio(self.data_path)
         self.trans = transforms.ToTensor()
 
@@ -22,10 +24,35 @@ class LibriSpeech300_train(Dataset):
         return refer_spec, clear_spec, noicy_spec
 
 
+def time_align(spec_list):
+    time_shapes = list()
+    for item in spec_list:
+        time_shapes.append(item.size(2))
+    time_shape = min(time_shapes)
+    time_shape = time_shape - 100
+    time_shape = random.randrange(time_shape)
+    out = list(map(lambda item: item[:,:,time_shape:time_shape+100], spec_list))
+    out = torch.stack(out, dim=0)
+    return out
+
+
+def collate_fn(batch):
+    refer_spec, clear_spec, noicy_spec = list(), list(), list()
+    for _refer_spec, _clear_spec, _noicy_spec in batch:
+        refer_spec.append(_refer_spec)
+        clear_spec.append(_clear_spec)
+        noicy_spec.append(_noicy_spec)
+    refer_spec = time_align(refer_spec)
+    clear_spec = time_align(clear_spec)
+    noicy_spec = time_align(noicy_spec)
+    return refer_spec.float(), clear_spec.float(), noicy_spec.float()
+
+
 def Loader(batch_size, num_workers, shuffle=False):
     train_data = LibriSpeech300_train()
     train_loader = DataLoader(dataset=train_data,
                               batch_size=batch_size,
+                              collate_fn=collate_fn,
                               num_workers=num_workers,
                               shuffle=False)
     return train_loader
