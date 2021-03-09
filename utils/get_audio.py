@@ -9,6 +9,7 @@ class GetAudio():
         self.data_path = data_path
         self.data_format = data_format
         self.sampling_rate = 16000
+        self.wave_len = 48000
         self.n_fft = 1000
         self.num_mels = 128
         self.mels_list = [100, 120, 130, 150]
@@ -16,19 +17,21 @@ class GetAudio():
                                              n_fft=512,
                                              n_mels=40)
 
+    def _get_wave(self, id_names):
+        id_name = random.sample(id_names, 2)
+        target_files = random.sample(glob.glob(os.path.join(self.data_path, id_name[0], self.data_format)), 2)
+        inter_file = random.choice(glob.glob(os.path.join(self.data_path, id_name[1], self.data_format)))
+        refer_wave, _ = librosa.load(target_files[0], sr=self.sampling_rate)
+        clear_wave, _ = librosa.load(target_files[1], sr=self.sampling_rate)
+        inter_wave, _ = librosa.load(inter_file, sr=self.sampling_rate)
+        return refer_wave, clear_wave, inter_wave
+
     def _mix_wave(self, x1, x2):
-        if x1.shape > x2.shape:
-            time_dif = x1.shape[0] - x2.shape[0]
-            time = random.randrange(time_dif)
-            x2 = np.hstack([np.zeros(time), x2, np.zeros(time_dif-time)])
-            return x1, x1 + x2
-        elif x1.shape < x2.shape:
-            time_dif = x2.shape[0] - x1.shape[0]
-            time = random.randrange(time_dif)
-            x1 = np.hstack([np.zeros(time), x1, np.zeros(time_dif-time)])
-            return x1, x1 + x2
-        else:
-            return x1, x1 + x2
+        x1_time = random.randrange(len(x1) - self.wave_len)
+        x2_time = random.randrange(len(x2) - self.wave_len)
+        x1 = x1[x1_time:x1_time+self.wave_len]
+        x2 = x1 + x2[x2_time:x2_time+self.wave_len]
+        return x1, x2
 
     def _mel_encoder(self, x):
         spec = librosa.core.stft(x, n_fft=512)
@@ -68,12 +71,11 @@ class GetAudio():
 
     def train_data(self):
         _, id_names, _ = next(os.walk(self.data_path))
-        id_name = random.sample(id_names, 2)
-        target_files = random.sample(glob.glob(os.path.join(self.data_path, id_name[0], self.data_format)), 2)
-        inter_file = random.choice(glob.glob(os.path.join(self.data_path, id_name[1], self.data_format)))
-        refer_wave, _ = librosa.load(target_files[0], sr=self.sampling_rate)
-        clear_wave, _ = librosa.load(target_files[1], sr=self.sampling_rate)
-        inter_wave, _ = librosa.load(inter_file, sr=self.sampling_rate)
+        clear_len, inter_len = 0, 0
+        while clear_len <= (self.wave_len) or inter_len <= (self.wave_len ):
+            refer_wave, clear_wave, inter_wave = self._get_wave(id_names)
+            clear_len = len(clear_wave)
+            inter_len = len(inter_wave)
         clear_wave, noicy_wave = self._mix_wave(clear_wave, inter_wave)
         # refer_spec = self._stft(refer_wave)
         refer_spec = self._mel_encoder(refer_wave)

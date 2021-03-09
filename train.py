@@ -27,15 +27,15 @@ def save_model(epoch):
 
 
 # init dataloader
-train_loader = Loader(batch_size=8, num_workers=8)
+train_loader = Loader(batch_size=16, num_workers=8)
 
 
 # init optimizer
-optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
 
 # loss
-criterion = torch.nn.MSELoss(reduction='sum')
+criterion = torch.nn.MSELoss(reduction='mean')
 
 
 def train():
@@ -45,9 +45,10 @@ def train():
         model.train()
         for iter, data in enumerate(train_loader):
             refer_spec, clear_spec, noicy_spec = data
-            refer_spec, clear_spec, noicy_spec = refer_spec.cuda(), clear_spec.cuda(), noicy_spec.cuda()
+            refer_spec = list(map(lambda item: item.cuda(), refer_spec))
+            clear_spec, noicy_spec = clear_spec.cuda(), noicy_spec.cuda()
             pred_spec = model(refer_spec, noicy_spec)
-            loss = criterion(pred_spec, clear_spec)
+            loss = criterion(pred_spec, clear_spec)*1000
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()

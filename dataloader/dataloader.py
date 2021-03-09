@@ -24,35 +24,33 @@ class LibriSpeech300_train(Dataset):
         return refer_spec, clear_spec, noicy_spec
 
 
-def time_align(spec_list):
-    time_shapes = list()
-    for item in spec_list:
-        time_shapes.append(item.size(2))
-    time_shape = min(time_shapes)
-    time_shape = time_shape - 100
-    time_shape = random.randrange(time_shape)
-    out = list(map(lambda item: item[:,:,time_shape:time_shape+100], spec_list))
-    out = torch.stack(out, dim=0)
-    return out
+# def time_align(spec_list):
+#     time_shapes = list()
+#     for item in spec_list:
+#         time_shapes.append(item.size(2))
+#     time_shape = min(time_shapes)
+#     time = random.randrange(time_shape)
+#     out = list(map(lambda item: item[:,:,time_shape-1:time_shape+len(item)-1], spec_list))
+#     out = torch.stack(out, dim=0)
+#     return out
 
 
 def collate_fn(batch):
     refer_spec, clear_spec, noicy_spec = list(), list(), list()
     for _refer_spec, _clear_spec, _noicy_spec in batch:
-        refer_spec.append(_refer_spec)
+        refer_spec.append(_refer_spec.float())
         clear_spec.append(_clear_spec)
         noicy_spec.append(_noicy_spec)
-    refer_spec = time_align(refer_spec)
-    clear_spec = time_align(clear_spec)
-    noicy_spec = time_align(noicy_spec)
-    return refer_spec.float(), clear_spec.float(), noicy_spec.float()
+    clear_spec = torch.stack(clear_spec, dim=0)
+    noicy_spec = torch.stack(noicy_spec, dim=0)
+    return refer_spec, clear_spec.float(), noicy_spec.float()
 
 
 def Loader(batch_size, num_workers, shuffle=False):
     train_data = LibriSpeech300_train()
     train_loader = DataLoader(dataset=train_data,
                               batch_size=batch_size,
-                              collate_fn=collate_fn,
                               num_workers=num_workers,
+                              collate_fn=collate_fn,
                               shuffle=False)
     return train_loader
