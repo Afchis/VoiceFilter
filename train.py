@@ -31,11 +31,11 @@ train_loader = Loader(batch_size=16, num_workers=8)
 
 
 # init optimizer
-optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
 
 
 # loss
-criterion = torch.nn.MSELoss(reduction='mean')
+criterion = torch.nn.MSELoss(reduction='sum')
 
 
 def train():
@@ -48,7 +48,7 @@ def train():
             refer_spec = list(map(lambda item: item.cuda(), refer_spec))
             clear_spec, noicy_spec = clear_spec.cuda(), noicy_spec.cuda()
             pred_spec = model(refer_spec, noicy_spec)
-            loss = criterion(pred_spec, clear_spec)*1000
+            loss = criterion(pred_spec, clear_spec)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()

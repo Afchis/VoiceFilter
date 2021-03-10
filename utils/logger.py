@@ -31,7 +31,7 @@ class Logger():
         print(" "*70, end="\r")
         print("Train prosess: [%0.2f" % (100*self.disp["train_iter"]/self.len_train) + chr(37) + "]", "Iter: %s" % self.iter,
               "Loss: %0.2f" % (self.disp["train_loss"]/self.disp["train_iter"]),
-              "min: %0.2f" % self.db_level[0], "max: %0.2f" % self.db_level[1], "%0.2f" % self.loss, end="\r")
+              "min: %0.2f" % self.db_level[0], "max: %0.2f" % self.db_level[1], end="\r")
 
     def printer_epoch(self):
         head = "Epoch %s" % self.epoch

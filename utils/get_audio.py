@@ -21,7 +21,7 @@ class GetAudio():
         id_name = random.sample(id_names, 2)
         target_files = random.sample(glob.glob(os.path.join(self.data_path, id_name[0], self.data_format)), 2)
         inter_file = random.choice(glob.glob(os.path.join(self.data_path, id_name[1], self.data_format)))
-        refer_wave, _ = librosa.load(target_files[0], sr=self.sampling_rate)
+        refer_wave, _ = librosa.load(target_files[0][:-5] + "-norm.wav", sr=self.sampling_rate)
         clear_wave, _ = librosa.load(target_files[1], sr=self.sampling_rate)
         inter_wave, _ = librosa.load(inter_file, sr=self.sampling_rate)
         return refer_wave, clear_wave, inter_wave

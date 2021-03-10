@@ -35,8 +35,8 @@ class LinReluBlock(nn.Module):
         self.linrelu = nn.Sequential(
             nn.ReLU(),
             nn.Linear(in_features=in_ch, out_features=out_ch),
-            nn.ReLU(),
-            nn.Linear(in_features=out_ch, out_features=out_ch),
+            # nn.ReLU(),
+            # nn.Linear(in_features=out_ch, out_features=out_ch),
             nn.Sigmoid()
             )
 

@@ -10,18 +10,18 @@ class VoiceFilter(nn.Module):
         super(VoiceFilter, self).__init__()
         self.refer_encoder = SpeechEmbedder()
         self.refer_encoder.load_state_dict(torch.load(RE_weights))
-        # self.cnn = nn.Sequential(
-        #     ConvReluBlock1d(in_ch=1, out_ch=64, kernel_size=7, dilation=1),
-        #     ConvReluBlock1d(in_ch=64, out_ch=64, kernel_size=1, dilation=1),
-        #     ConvReluBlock1d(in_ch=64, out_ch=64, kernel_size=5, dilation=1),
-        #     ConvReluBlock1d(in_ch=64, out_ch=64, kernel_size=5, dilation=1),
-        #     ConvReluBlock1d(in_ch=64, out_ch=64, kernel_size=5, dilation=1),
-        #     ConvReluBlock1d(in_ch=64, out_ch=64, kernel_size=5, dilation=1),
-        #     ConvReluBlock1d(in_ch=64, out_ch=64, kernel_size=5, dilation=1),
-        #     ConvReluBlock1d(in_ch=64, out_ch=8, kernel_size=1, dilation=1)
-        #     )
-        self.lstm = nn.LSTM(input_size=(501)+256, hidden_size=400, num_layers=5)
-        self.fc = LinReluBlock(in_ch=400, out_ch=501)
+        self.cnn = nn.Sequential(
+            ConvReluBlock1d(in_ch=1, out_ch=64, kernel_size=7, dilation=1),
+            ConvReluBlock1d(in_ch=64, out_ch=64, kernel_size=1, dilation=1),
+            ConvReluBlock1d(in_ch=64, out_ch=64, kernel_size=5, dilation=1),
+            ConvReluBlock1d(in_ch=64, out_ch=64, kernel_size=5, dilation=1),
+            # ConvReluBlock1d(in_ch=64, out_ch=64, kernel_size=5, dilation=1),
+            # ConvReluBlock1d(in_ch=64, out_ch=64, kernel_size=5, dilation=1),
+            # ConvReluBlock1d(in_ch=64, out_ch=64, kernel_size=5, dilation=1),
+            ConvReluBlock1d(in_ch=64, out_ch=8, kernel_size=1, dilation=1)
+            )
+        self.lstm = nn.LSTM(input_size=(8*501)+256, hidden_size=512, num_layers=3)
+        self.fc = LinReluBlock(in_ch=512, out_ch=501)
 
     def forward(self, refer_spec, noicy_spec):
         out_spec = noicy_spec
@@ -33,10 +33,10 @@ class VoiceFilter(nn.Module):
                 d_vec.append(self.refer_encoder(batch))
             d_vec = torch.stack(d_vec, dim=0) # [b, c]
         noicy_spec = noicy_spec.permute(0, 3, 1, 2)
-        out = noicy_spec.reshape(noicy_spec.size(0), noicy_spec.size(1), -1) # [b, time, c*mel]
-        # noicy_spec = noicy_spec.reshape(-1, noicy_spec.size(2), noicy_spec.size(3)) # [b*time, c, mel]
-        # out = self.cnn(noicy_spec) # [b*time, c, mel]
-        # out = out.reshape(b, time, -1) # [b, time, c*mel]
+        # out = noicy_spec.reshape(noicy_spec.size(0), noicy_spec.size(1), -1) # [b, time, c*mel]
+        noicy_spec = noicy_spec.reshape(-1, noicy_spec.size(2), noicy_spec.size(3)) # [b*time, c, mel]
+        out = self.cnn(noicy_spec) # [b*time, c, mel]
+        out = out.reshape(b, time, -1) # [b, time, c*mel]
         with torch.no_grad():
             d_vec = d_vec.unsqueeze(1).expand(d_vec.size(0), out.size(1), d_vec.size(1))
         out = torch.cat([out, d_vec], dim=2)
