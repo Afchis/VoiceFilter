@@ -18,7 +18,8 @@ model.cuda()
 train_loader = LibriSpeech300_dvec()
 
 # init optimizer
-optimizer = torch.optim.Adam(model.parameters(), lr=1)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.8)
 
 
 def train():
@@ -35,14 +36,16 @@ def train():
             for name, param in model.named_parameters():
                 if "proj" in name:
                     param.grad *= 0.5
-                elif "loss" in name:
-                    param.grad *= 0.01
+                # elif "loss" in name:
+                #     param.grad *= 0.0001
             torch.nn.utils.clip_grad_norm_(model.lstm.parameters(), 3, norm_type=2)
+            torch.nn.utils.clip_grad_norm_(model.proj.parameters(), 3, norm_type=2)
             optimizer.step()
             logger.update("train_iter", iter)
             logger.update("train_loss", loss.item())
             logger.update("sim", [pos_sim, neg_sim])
             logger.printer_train()
+        scheduler.step()
         logger.printer_epoch()
 
 

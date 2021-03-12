@@ -36,9 +36,10 @@ class GetAudio():
         return x1, x2
 
     # for dvec:
+    ''''''
     def _wav2mel(self, x):
         out = librosa.feature.melspectrogram(x, sr=self.sampling_rate, n_fft=self.n_fft)
-        out = librosa.amplitude_to_db(abs(out), ref=1., amin=1e-05, top_db=None) - 30.
+        out = librosa.power_to_db(abs(out), ref=1., amin=1e-05, top_db=None)
         out = self._norm(out)
         return out
 
@@ -46,13 +47,22 @@ class GetAudio():
         spec = librosa.core.stft(x, n_fft=512)
         magnitudes = np.abs(spec) ** 2
         mel = np.log10(np.dot(self.mel_basis, magnitudes) + 1e-6)
+        mel = self._norm_dvec(mel)
+        # print(mel.min(), mel.max())
         return mel
 
+    def _norm_dvec(self, x):
+        return np.clip((x / 6.), a_min=-1., a_max=0.) + 1.
+
+    def _denorm_dvec(self, x):
+        return (x - 1.) * 6.
+    ''''''
+
     def _norm(self, x):
-        return np.clip((x / 100.), a_min=-1., a_max=0.) + 1.
+        return np.clip((x / 50.), a_min=-1., a_max=0.) + 1.
 
     def _denorm(self, x):
-        return (x - 1.) * 100.
+        return (x - 1.) * 50.
         
     def _wav2spec(self, x):
         out = librosa.stft(x, n_fft=self.n_fft)
@@ -88,15 +98,15 @@ class GetAudio():
         for speaker in range(self.speaker_num):
             for utterance in range(self.utterance_num):
                 wave, _ = librosa.load(waves_list[speaker][utterance], sr=self.sampling_rate)
-                if len(wave) == self.wave_len:
+                if len(wave) == 12800:
                     waves.append(wave)
-                elif len(wave) < self.wave_len:
-                    num_zeros = self.wave_len - len(wave)
+                elif len(wave) < 12800:
+                    num_zeros = 12800 - len(wave)
                     wave = np.append(wave, np.zeros(num_zeros))
                     waves.append(wave)
                 else:
-                    time = random.randrange(len(wave) - self.wave_len)
-                    waves.append(wave[time:time+self.wave_len])
+                    time = random.randrange(len(wave) - 12800)
+                    waves.append(wave[time:time+12800])
         # waves len --> [self.speaker_num * self.utterance_num]
         return waves 
 
