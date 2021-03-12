@@ -6,12 +6,10 @@ import torch.nn.functional as F
 class GE2ELoss(nn.Module):
     def __init__(self):
         super(GE2ELoss, self).__init__()
-        self.weight = nn.Parameter(torch.tensor([10.]))
-        self.bias = nn.Parameter(torch.tensor([-5.]))
+        self.loss_w = nn.Parameter(torch.tensor([10.]))
+        self.loss_b = nn.Parameter(torch.tensor([-5.]))
         self.weight.requires_grad = True
         self.bias.requires_grad = True
-        self.sigmoid = nn.Sigmoid()
-        
 
     def _pos_centroids(self, dvec):
         return torch.mean(dvec, dim=1).unsqueeze(1)
@@ -33,10 +31,12 @@ class GE2ELoss(nn.Module):
         pos_sim = list()
         neg_sim = list()
         for sp_idx in range(dvec.size(0)):
-            pos_sim_speaker = self.weight * F.cosine_similarity(dvec[sp_idx], pos_centroids[sp_idx], dim=1, eps=1e-6) + self.bias # [utterance_idx]
+            # pos_sim_speaker = self.weight * F.cosine_similarity(dvec[sp_idx], pos_centroids[sp_idx], dim=1, eps=1e-6) + self.bias # [utterance_idx]
+            pos_sim_speaker = F.cosine_similarity(dvec[sp_idx], pos_centroids[sp_idx], dim=1, eps=1e-6) # [utterance_idx]
             neg_sim_speaker = list()
             for utt_idx in range(dvec.size(1)):
-                neg_sim_utterance = self.weight * F.cosine_similarity(dvec[sp_idx, utt_idx].unsqueeze(0), neg_cintroids[sp_idx], dim=1, eps=1e-6) + self.bias # [speaker_idx-1]
+                # neg_sim_utterance = self.weight * F.cosine_similarity(dvec[sp_idx, utt_idx].unsqueeze(0), neg_cintroids[sp_idx], dim=1, eps=1e-6) + self.bias # [speaker_idx-1]
+                neg_sim_utterance = F.cosine_similarity(dvec[sp_idx, utt_idx].unsqueeze(0), neg_cintroids[sp_idx], dim=1, eps=1e-6)
                 neg_sim_speaker.append(neg_sim_utterance)
             neg_sim_speaker = torch.stack(neg_sim_speaker, dim=0) # [utterance_idx, speaker_idx-1]
             pos_sim.append(pos_sim_speaker)
@@ -47,9 +47,14 @@ class GE2ELoss(nn.Module):
 
     def _contrast_loss(self, pos_sim, neg_sim):
         loss =  1 - self.sigmoid(pos_sim) + self.sigmoid(neg_sim.max(2)[0])
-        return loss.sum()
+        # loss =  1 - pos_sim + neg_sim.max(2)[0]
+        return loss.mean()
+
+    def _softmax_loss(self, pos_sim, neg_sim):
+        raise NotImplementedError
 
     def forward(self, dvec):
+        dvec = dvec.reshape(16, 8, -1)
         pos_centroids = self._pos_centroids(dvec)
         neg_cintroids = self._neg_centroids(dvec)
         pos_sim, neg_sim = self._sim_matrix(dvec, pos_centroids, neg_cintroids)
@@ -62,3 +67,4 @@ if __name__ == "__main__":
     model = GE2ELoss()
     loss = model(dvec)
     print(loss)
+

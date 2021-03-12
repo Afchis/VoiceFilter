@@ -54,3 +54,4 @@ def Loader(batch_size, num_workers, shuffle=False):
                               collate_fn=collate_fn,
                               shuffle=False)
     return train_loader
+

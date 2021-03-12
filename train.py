@@ -31,7 +31,7 @@ train_loader = Loader(batch_size=16, num_workers=8)
 
 
 # init optimizer
-optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
 
 # loss
@@ -54,8 +54,6 @@ def train():
             optimizer.step()
             logger.update("train_iter", iter)
             logger.update("train_loss", loss.item())
-            logger.update("loss", loss.item())
-            logger.update("db_level", [pred_spec.min().item(), pred_spec.max().item()])
             logger.printer_train()
         logger.printer_epoch()
         save_model(epoch)
